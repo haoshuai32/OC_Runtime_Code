@@ -6101,6 +6101,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 
     // Optimistic cache lookup
     if (fastpath(behavior & LOOKUP_CACHE)) {
+        //先查缓存,缓存没有时重建,仍旧没有则向父类查询
         imp = cache_getImp(cls, sel);
         if (imp) goto done_nolock;
     }
