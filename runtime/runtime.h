@@ -52,6 +52,7 @@ typedef struct objc_category *Category;
 /// An opaque type that represents an Objective-C declared property.
 typedef struct objc_property *objc_property_t;
 
+// MARK: runtime核心实现 实现都是用C语言的接口体，里面都用 列表实现 方法 分类 属性 协议的 管理
 struct objc_class {
     Class _Nonnull isa  OBJC_ISA_AVAILABILITY;
 
@@ -61,9 +62,12 @@ struct objc_class {
     long version                                             OBJC2_UNAVAILABLE;
     long info                                                OBJC2_UNAVAILABLE;
     long instance_size                                       OBJC2_UNAVAILABLE;
+    // 
     struct objc_ivar_list * _Nullable ivars                  OBJC2_UNAVAILABLE;
+    // 方法列表
     struct objc_method_list * _Nullable * _Nullable methodLists                    OBJC2_UNAVAILABLE;
     struct objc_cache * _Nonnull cache                       OBJC2_UNAVAILABLE;
+    // 协议列表
     struct objc_protocol_list * _Nullable protocols          OBJC2_UNAVAILABLE;
 #endif
 
