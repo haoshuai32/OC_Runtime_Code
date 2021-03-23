@@ -3699,7 +3699,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                 }
                 
                 const method_list_t *mlist;
-                if ((mlist = ((class_ro_t *)cls->data())->baseMethods())) {
+                if ((mlist = ((class_rxo_t *)cls->data())->baseMethods())) {
                     PreoptTotalMethodLists++;
                     if (mlist->isFixedUp()) {
                         PreoptOptimizedMethodLists++;

@@ -78,7 +78,7 @@ union isa_t {
 #endif
 };
 
-
+// 核心部分 实现 OC用C语言的结构体 实现
 struct objc_object {
 private:
     isa_t isa;
