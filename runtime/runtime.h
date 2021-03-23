@@ -54,20 +54,35 @@ typedef struct objc_property *objc_property_t;
 
 // MARK: runtime核心实现 实现都是用C语言的接口体，里面都用 列表实现 方法 分类 属性 协议的 管理
 struct objc_class {
+    /*
+     Class对象，指向objc_class结构体的指针，也就是这个Class的MetaClass(元类)
+     - 类的实例对象的 isa 指向该类;该类的 isa 指向该类的 MetaClass
+     - MetaCalss的isa对象指向RootMetaCalss
+     */
     Class _Nonnull isa  OBJC_ISA_AVAILABILITY;
 
 #if !__OBJC2__
+    
+    /* Class对象指向父类对象
+    - 如果该类的对象已经是RootClass，那么这个super_class指向nil
+    - MetaCalss的SuperClass指向父类的MetaCalss
+    - MetaCalss是RootMetaCalss，那么该MetaClass的SuperClass指向该对象的RootClass
+     */
     Class _Nullable super_class                              OBJC2_UNAVAILABLE;
+    
     const char * _Nonnull name                               OBJC2_UNAVAILABLE;
     long version                                             OBJC2_UNAVAILABLE;
     long info                                                OBJC2_UNAVAILABLE;
     long instance_size                                       OBJC2_UNAVAILABLE;
-    // 
+    // 类中所有属性的列表，使用场景：我们在字典转换成模型的时候需要用到这个列表找到属性的名称，去取字典中的值，KVC赋值，或者直接Runtime赋值
     struct objc_ivar_list * _Nullable ivars                  OBJC2_UNAVAILABLE;
-    // 方法列表
+    // 类中所有的方法的列表，类中所有方法的列表，使用场景：如在程序中写好方法，通过外部获取到方法名称字符串，然后通过这个字符串得到方法，从而达到外部控制App已知方法。
     struct objc_method_list * _Nullable * _Nullable methodLists                    OBJC2_UNAVAILABLE;
+    // 主要用于缓存常用方法列表，每个类中有很多方法，我平时不用的方法也会在里面，每次运行一个方法，都要去methodLists遍历得到方法，如果类的方法不多还行，但是基本的类中都会有很多方法，这样势必会影响程序的运行效率，所以cache在这里就会被用上，当我们使用这个类的方法时先判断cache是否为空，为空从methodLists找到调用，并保存到cache，不为空先从cache中找方法，如果找不到在去methodLists，这样提高了程序方法的运行效率
+    
+    
     struct objc_cache * _Nonnull cache                       OBJC2_UNAVAILABLE;
-    // 协议列表
+    // 故名思义，这个类中都遵守了哪些协议，使用场景：判断类是否遵守了某个协议上
     struct objc_protocol_list * _Nullable protocols          OBJC2_UNAVAILABLE;
 #endif
 
