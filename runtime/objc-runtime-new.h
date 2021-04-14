@@ -263,7 +263,7 @@ public:
     void set(SEL newSel, IMP newImp, Class cls);
 };
 
-
+// MARK: 方法缓存
 struct cache_t {
 #if CACHE_MASK_STORAGE == CACHE_MASK_STORAGE_OUTLINED
     explicit_atomic<struct bucket_t *> _buckets;
@@ -417,6 +417,17 @@ struct stub_class_t {
 * FlagMask is used to stash extra bits in the entsize field
 *   (e.g. method list fixup markers)
 **********************************************************************/
+
+/***********************************************************************
+* entsize_list_tt <元素，列表，FlagMask> - 模版函数
+*非脆弱结构数组的通用实现。
+*
+*元素是结构类型（例如method_t）
+*列表是entsize_list_tt的特长（例如method_list_t）
+* FlagMask用于在entsize字段中存储多余的位
+*（例如方法列表修正标记）
+***********************************************************************/
+
 template <typename Element, typename List, uint32_t FlagMask>
 struct entsize_list_tt {
     uint32_t entsizeAndFlags;
@@ -616,19 +627,27 @@ typedef uintptr_t protocol_ref_t;  // protocol_t *, but unremapped
 
 #define PROTOCOL_FIXED_UP_MASK (PROTOCOL_FIXED_UP_1 | PROTOCOL_FIXED_UP_2)
 
+//MARK: 协议结构体
 struct protocol_t : objc_object {
     const char *mangledName;
+    /// 协议的继承
     struct protocol_list_t *protocols;
+    /// 实例方法
     method_list_t *instanceMethods;
+    /// 类方法
     method_list_t *classMethods;
+    /// 可选实例方法
     method_list_t *optionalInstanceMethods;
+    /// 可选方法
     method_list_t *optionalClassMethods;
+    /// 实例属性
     property_list_t *instanceProperties;
     uint32_t size;   // sizeof(protocol_t)
     uint32_t flags;
     // Fields below this point are not always present on disk.
     const char **_extendedMethodTypes;
     const char *_demangledName;
+    /// 类属性
     property_list_t *_classProperties;
 
     const char *demangledName();
@@ -666,6 +685,7 @@ struct protocol_t : objc_object {
     }
 };
 
+// MARK: 协议继承列表
 struct protocol_list_t {
     // count is pointer-sized by accident.
     uintptr_t count;
