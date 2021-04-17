@@ -21,6 +21,8 @@
  * @APPLE_LICENSE_HEADER_END@
  */
 
+// MARK: 弱引用部分
+
 #include "objc-private.h"
 
 #include "objc-weak.h"
@@ -296,6 +298,16 @@ static void weak_entry_remove(weak_table_t *weak_table, weak_entry_t *entry)
 
 
 /** 
+
+*返回给定参照物的弱参照表条目。
+  *如果没有要引用的条目，则返回NULL。
+  *执行查找。
+  *
+  * @参数weak_table
+  * @param referent对象。 不能为零。
+  *
+  * @return该对象的弱引用列表。
+  
  * Return the weak reference table entry for the given referent. 
  * If there is no entry for referent, return NULL. 
  * Performs a lookup.
@@ -330,6 +342,21 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
 }
 
 /** 
+
+*取消注册已经注册的弱引用。
+  *当引用者的存储空间即将用尽，但引用者使用时使用
+  *还没有死。 （否则，稍后将引荐来源网址归零
+  *错误的内存访问。）
+  *如果推荐人/推荐人不是当前活跃的弱引用，则不执行任何操作。
+  *不为零引荐来源网址。
+  *
+  * FIXME当前要求传入旧的参照值（lam）
+  *如果收集了引荐来源，则FIXME取消注册应该是自动的
+  *
+  * @param weak_table全局弱表。
+  * @param referent对象。
+  * @param Referrer弱引用。
+
  * Unregister an already-registered weak reference.
  * This is used when referrer's storage is about to go away, but referent
  * isn't dead yet. (Otherwise, zeroing referrer later would be a
@@ -380,6 +407,13 @@ weak_unregister_no_lock(weak_table_t *weak_table, id referent_id,
 }
 
 /** 
+  *注册一个新的（对象，弱指针）对。 创造一个新的弱点
+  *对象条目（如果不存在）。
+  *
+  * @param weak_table全局弱表。
+  * @param referent弱引用指向的对象。
+  * @param Referrer弱指针地址。
+
  * Registers a new (object, weak pointer) pair. Creates a new weak
  * object entry if it does not exist.
  * 

@@ -96,6 +96,9 @@ struct RefcountMapValuePurgeable {
     }
 };
 
+// RefcountMap伪装了它的指针，因为我们
+//不希望表格充当`leaks`的根。
+
 // RefcountMap disguises its pointers because we 
 // don't want the table to act as a root for `leaks`.
 typedef objc::DenseMap<DisguisedPtr<objc_object>,size_t,RefcountMapValuePurgeable> RefcountMap;
@@ -265,6 +268,24 @@ objc_storeStrong(id *location, id obj)
 // If CrashIfDeallocating is true, the process is halted if newObj is 
 //   deallocating or newObj's class does not support weak references. 
 //   If CrashIfDeallocating is false, nil is stored instead.
+
+// 添加弱引用
+
+// SideTable 散列表
+
+//更新一个弱变量。
+//如果HaveOld为true，则该变量具有现有值
+//需要清除的内容。 该值可能为零。
+//如果HaveNew为true，则需要有一个新值
+//分配给变量。 该值可能为零。
+//如果CrashIfDeallocating为true，则在newObj为
+//解除分配或newObj的类不支持弱引用。
+//如果CrashIfDeallocating为false，则存储nil。
+
+
+enum HaveOld { DontHaveOld = false, DoHaveOld = true };
+enum HaveNew { DontHaveNew = false, DoHaveNew = true };
+
 enum CrashIfDeallocating {
     DontCrashIfDeallocating = false, DoCrashIfDeallocating = true
 };
@@ -280,6 +301,10 @@ storeWeak(id *location, objc_object *newObj)
     id oldObj;
     SideTable *oldTable;
     SideTable *newTable;
+
+    //获取旧值和新值的锁。
+    //按锁地址排序，以防止出现锁排序问题。
+    //重试旧值是否在我们下面更改。
 
     // Acquire locks for old and new values.
     // Order by lock address to prevent lock ordering problems. 
@@ -356,8 +381,18 @@ storeWeak(id *location, objc_object *newObj)
     return (id)newObj;
 }
 
+// MARK: 弱引用对外函数
 
 /** 
+
+*此函数将新值存储到__weak变量中。 它会
+  *可在__weak变量是赋值目标的任何地方使用。
+  *
+  * @param location弱指针本身的地址
+  * @param newObj此弱ptr现在应该指向的新对象
+  *
+  * @返回\ e newObj
+
  * This function stores a new value into a __weak variable. It would
  * be used anywhere a __weak variable is the target of an assignment.
  * 
@@ -369,6 +404,7 @@ storeWeak(id *location, objc_object *newObj)
 id
 objc_storeWeak(id *location, id newObj)
 {
+    // true true
     return storeWeak<DoHaveOld, DoHaveNew, DoCrashIfDeallocating>
         (location, (objc_object *)newObj);
 }
