@@ -89,3 +89,7 @@ struct objc_method {
 
 > Selector，Method，IMP 它们之间的关系可以这么解释：
 **一个类（Class）持有一个分发表，在运行期分发消息，表中的每一个实体代表一个方法（Method），它的名字叫做选择子（SEL），对应着一种方法实现（IMP）。**
+
+----- 
+## 弱引用
+
