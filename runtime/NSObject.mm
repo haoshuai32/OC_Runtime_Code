@@ -411,6 +411,14 @@ objc_storeWeak(id *location, id newObj)
 
 
 /** 
+*此函数将新值存储到__weak变量中。
+  *如果新对象正在释放或新对象的类
+  *不支持弱引用，而是存储nil。
+  *
+  * @param location弱指针本身的地址
+  * @param newObj此弱ptr现在应该指向的新对象
+  *
+  * @return存储的值（新对象或nil）
  * This function stores a new value into a __weak variable. 
  * If the new object is deallocating or the new object's class 
  * does not support weak references, stores nil instead.
@@ -1615,12 +1623,13 @@ objc_object::sidetable_clearDeallocating()
 
 #if __OBJC2__
 
+// MARK: 强引用实现
 __attribute__((aligned(16), flatten, noinline))
 id 
 objc_retain(id obj)
 {
-    if (!obj) return obj;
-    if (obj->isTaggedPointer()) return obj;
+    if (!obj) return obj; // == null
+    if (obj->isTaggedPointer()) return obj; // 对象是一个指向别的对象
     return obj->retain();
 }
 

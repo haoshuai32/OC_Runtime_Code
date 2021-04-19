@@ -91,5 +91,16 @@ struct objc_method {
 **一个类（Class）持有一个分发表，在运行期分发消息，表中的每一个实体代表一个方法（Method），它的名字叫做选择子（SEL），对应着一种方法实现（IMP）。**
 
 ----- 
+
+## 引用计数
+
+runtime/objc_object.h
+
+```c
+//MARK: 内存计数
+ALWAYS_INLINE id 
+objc_object::rootRetain(bool tryRetain, bool handleOverflow)
+```
+
 ## 弱引用
 

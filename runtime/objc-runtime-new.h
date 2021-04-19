@@ -1264,8 +1264,8 @@ public:
 struct objc_class : objc_object {
     // Class ISA;
     Class superclass;
-    cache_t cache;             // formerly cache pointer and vtable
-    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
+    cache_t cache;             // formerly cache pointer and vtable [存储用户消息转发优化的方法缓存和 vtable 。]
+    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags [class_rw_t 和 class_ro_t ，保存了方法、协议、属性等列表和一些标志位。]
 
     class_rw_t *data() const {
         return bits.data();
