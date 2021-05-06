@@ -1667,8 +1667,11 @@ static IMP _class_addMethod(Class cls, SEL name, IMP imp,
             (old_method_list *)calloc(sizeof(old_method_list), 1);
         mlist->obsolete = fixed_up_method_list;
         mlist->method_count = 1;
+        // 方法名 sel
         mlist->method_list[0].method_name = name;
+        // 方法返回类型
         mlist->method_list[0].method_types = strdup(types);
+        // 方法指针 
         mlist->method_list[0].method_imp = imp;
         
         _objc_insertMethods(cls, mlist, nil);

@@ -65,6 +65,27 @@ namespace {
 
 #include "isa.h"
 
+
+/*
+union isa_t 
+{
+    Class cls;
+    uintptr_t bits;
+    struct {
+         uintptr_t nonpointer        : 1;//->表示使用优化的isa指针
+         uintptr_t has_assoc         : 1;//->是否包含关联对象
+         uintptr_t has_cxx_dtor      : 1;//->是否设置了析构函数，如果没有，释放对象更快
+         uintptr_t shiftcls          : 33; // MACH_VM_MAX_ADDRESS 0x1000000000 ->类的指针
+         uintptr_t magic             : 6;//->固定值,用于判断是否完成初始化
+         uintptr_t weakly_referenced : 1;//->对象是否被弱引用
+         uintptr_t deallocating      : 1;//->对象是否正在销毁
+         uintptr_t has_sidetable_rc  : 1;//1->在extra_rc存储引用计数将要溢出的时候,借助Sidetable(散列表)存储引用计数,has_sidetable_rc设置成1
+        uintptr_t extra_rc          : 19;  //->存储引用计数
+    };
+};
+
+*/
+
 union isa_t {
     isa_t() { }
     isa_t(uintptr_t value) : bits(value) { }
@@ -78,7 +99,7 @@ union isa_t {
 #endif
 };
 
-// 核心部分 实现 OC用C语言的结构体 实现
+// objc_object 对象管理实现
 struct objc_object {
 private:
     isa_t isa;
