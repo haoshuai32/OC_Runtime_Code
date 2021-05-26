@@ -28,7 +28,7 @@
 
 #include "objc-private.h"
 #include "objc-loadmethod.h"
-#include "objc-cache.h"
+#include "objc-bp-assist.h"
 
 #if TARGET_OS_WIN32
 
@@ -492,11 +492,16 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
             if (mhdr->filetype == MH_EXECUTE) {
                 // Size some data structures based on main executable's size
 #if __OBJC2__
-                size_t count;
-                _getObjc2SelectorRefs(hi, &count);
-                selrefCount += count;
-                _getObjc2MessageRefs(hi, &count);
-                selrefCount += count;
+                // If dyld3 optimized the main executable, then there shouldn't
+                // be any selrefs needed in the dynamic map so we can just init
+                // to a 0 sized map
+                if ( !hi->hasPreoptimizedSelectors() ) {
+                  size_t count;
+                  _getObjc2SelectorRefs(hi, &count);
+                  selrefCount += count;
+                  _getObjc2MessageRefs(hi, &count);
+                  selrefCount += count;
+                }
 #else
                 _getObjcSelectorRefs(hi, &selrefCount);
 #endif
@@ -559,13 +564,12 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
         // Disable +initialize fork safety if the app has a
         //   __DATA,__objc_fork_ok section.
 
-        if (dyld_get_program_sdk_version() < DYLD_MACOSX_VERSION_10_13) {
+        if (!dyld_program_sdk_at_least(dyld_platform_version_macOS_10_13)) {
             DisableInitializeForkSafety = true;
             if (PrintInitializing) {
                 _objc_inform("INITIALIZE: disabling +initialize fork "
                              "safety enforcement because the app is "
-                             "too old (SDK version " SDK_FORMAT ")",
-                             FORMAT_SDK(dyld_get_program_sdk_version()));
+                             "too old.)");
             }
         }
 
@@ -656,6 +660,11 @@ static void static_init()
     auto inits = getLibobjcInitializers(&_mh_dylib_header, &count);
     for (size_t i = 0; i < count; i++) {
         inits[i]();
+    }
+    auto offsets = getLibobjcInitializerOffsets(&_mh_dylib_header, &count);
+    for (size_t i = 0; i < count; i++) {
+        UnsignedInitializer init(offsets[i]);
+        init();
     }
 }
 
@@ -904,6 +913,11 @@ void _objc_atfork_child()
 }
 
 
+#if HAS_OBJC_BP_ASSIST
+extern "C" kern_return_t objc_bp_assist_cfg_np(uint64_t adr, uint64_t ctl) __attribute__((weak));
+#endif
+
+
 /***********************************************************************
 * _objc_init
 * Bootstrap initialization. Registers our image notifier with dyld.
@@ -917,12 +931,20 @@ void _objc_init(void)
     initialized = true;
     
     // fixme defer initialization until an objc-using image is found?
+#if HAS_OBJC_BP_ASSIST
+    // Temporarily allow running on OSes that don't have this
+    // function call for convenience in development.
+    if (&objc_bp_assist_cfg_np)
+        configureObjCBPAssist(objc_bp_assist_cfg_np);
+#endif
     environ_init();
     tls_init();
     static_init();
     runtime_init();
     exception_init();
-    cache_init();
+#if __OBJC2__
+    cache_t::init();
+#endif
     _imp_implementationWithBlock_init();
 
     _dyld_objc_notify_register(&map_images, load_images, unmap_image);
@@ -939,11 +961,7 @@ void _objc_init(void)
 **********************************************************************/
 static const header_info *_headerForAddress(void *addr)
 {
-#if __OBJC2__
-    const char *segnames[] = { "__DATA", "__DATA_CONST", "__DATA_DIRTY" };
-#else
-    const char *segnames[] = { "__OBJC" };
-#endif
+    const char *segnames[] = { "__DATA", "__DATA_CONST", "__DATA_DIRTY", "__AUTH" };
     header_info *hi;
 
     for (hi = FirstHeader; hi != NULL; hi = hi->getNext()) {

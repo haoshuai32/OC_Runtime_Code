@@ -69,7 +69,6 @@ static const uint32_t __objc_sel_set_capacities[SIZE+1] = {
     599074578,  969323029, 1568397607, 2537720636U, UINT32_MAX
 };
 
-// 仓库大小
 static const uint32_t __objc_sel_set_buckets[SIZE] = {    // primes
     5, 11, 23, 41, 67, 113, 199, 317, 521, 839, 1361, 2207, 3571, 5779, 
     9349, 15121, 24473, 39607, 64081, 103681, 167759, 271429, 439199, 
@@ -121,7 +120,7 @@ struct __objc_sel_set *__objc_sel_set_create(size_t selrefs) {
     sset->_count = 0;
 
     // heuristic to convert executable's selrefs count to table size
-#if TARGET_OS_IPHONE && !TARGET_OS_IOSMAC
+#if TARGET_OS_IPHONE && !TARGET_OS_MACCATALYST
     for (idx = 0; __objc_sel_set_capacities[idx] < selrefs; idx++);
     if (idx > 0 && selrefs < 1536) idx--;
 #else

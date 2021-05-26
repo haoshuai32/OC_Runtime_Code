@@ -46,10 +46,10 @@ struct objc_object {
 typedef struct objc_object *id;
 #endif
 
-/// An opaque type that represents a method selector.  不透明结构体, selector
+/// An opaque type that represents a method selector.
 typedef struct objc_selector *SEL;
 
-/// A pointer to the function of a method implementation.  函数指针, 用于表示对象方法的实现
+/// A pointer to the function of a method implementation. 
 #if !OBJC_OLD_DISPATCH_PROTOTYPES
 typedef void (*IMP)(void /* id, SEL, ... */ ); 
 #else
@@ -67,7 +67,7 @@ typedef id _Nullable (*IMP)(id _Nonnull, SEL _Nonnull, ...);
 #   endif
 #else
     // __OBJC_BOOL_IS_BOOL not set.
-#   if TARGET_OS_OSX || TARGET_OS_IOSMAC || ((TARGET_OS_IOS || TARGET_OS_BRIDGE) && !__LP64__ && !__ARM_ARCH_7K)
+#   if TARGET_OS_OSX || TARGET_OS_MACCATALYST || ((TARGET_OS_IOS || TARGET_OS_BRIDGE) && !__LP64__ && !__ARM_ARCH_7K)
 #      define OBJC_BOOL_IS_BOOL 0
 #   else
 #      define OBJC_BOOL_IS_BOOL 1
@@ -180,8 +180,7 @@ OBJC_EXPORT const char * _Nonnull object_getClassName(id _Nullable obj)
  * @note In a garbage-collected environment, the memory is scanned conservatively.
  */
 OBJC_EXPORT void * _Nullable object_getIndexedIvars(id _Nullable obj)
-    OBJC_AVAILABLE(10.0, 2.0, 9.0, 1.0, 2.0)
-    OBJC_ARC_UNAVAILABLE;
+    OBJC_AVAILABLE(10.0, 2.0, 9.0, 1.0, 2.0);
 
 /** 
  * Identifies a selector as being valid or invalid.

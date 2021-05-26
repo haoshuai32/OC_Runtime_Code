@@ -52,41 +52,18 @@ typedef struct objc_category *Category;
 /// An opaque type that represents an Objective-C declared property.
 typedef struct objc_property *objc_property_t;
 
-// MARK: runtime核心实现 实现都是用C语言的结构体，里面都用 列表实现 方法 分类 属性 协议的 管理
 struct objc_class {
-    /*
-     Class对象，指向objc_class结构体的指针，也就是这个Class的MetaClass(元类)
-     - 类的实例对象的 isa 指向该类;该类的 isa 指向该类的 MetaClass
-     - MetaCalss的isa对象指向RootMetaCalss
-     */
     Class _Nonnull isa  OBJC_ISA_AVAILABILITY;
 
 #if !__OBJC2__
-    
-    /* Class对象指向父类对象
-    - 如果该类的对象已经是RootClass，那么这个super_class指向nil
-    - MetaCalss的SuperClass指向父类的MetaCalss
-    - MetaCalss是RootMetaCalss，那么该MetaClass的SuperClass指向该对象的RootClass
-     */
     Class _Nullable super_class                              OBJC2_UNAVAILABLE;
-    
     const char * _Nonnull name                               OBJC2_UNAVAILABLE;
     long version                                             OBJC2_UNAVAILABLE;
     long info                                                OBJC2_UNAVAILABLE;
     long instance_size                                       OBJC2_UNAVAILABLE;
-    /// 类中所有属性的列表，使用场景：我们在字典转换成模型的时候需要用到这个列表找到属性的名称，
-    /// 去取字典中的值，KVC赋值，或者直接Runtime赋值
     struct objc_ivar_list * _Nullable ivars                  OBJC2_UNAVAILABLE;
-    /// 类中所有的方法的列表，类中所有方法的列表，使用场景：如在程序中写好方法，通过外部获取到方法名称字符串，
-    /// 然后通过这个字符串得到方法，从而达到外部控制App已知方法。
     struct objc_method_list * _Nullable * _Nullable methodLists                    OBJC2_UNAVAILABLE;
-    /// 主要用于缓存常用方法列表，每个类中有很多方法，我平时不用的方法也会在里面，每次运行一个方法，
-    /// 都要去methodLists遍历得到方法，
-    /// 如果类的方法不多还行，但是基本的类中都会有很多方法，这样势必会影响程序的运行效率，
-    /// 所以cache在这里就会被用上，当我们使用这个类的方法时先判断cache是否为空，为空从methodLists找到调用，并保存到cache，
-    /// 不为空先从cache中找方法，如果找不到在去methodLists，这样提高了程序方法的运行效率
     struct objc_cache * _Nonnull cache                       OBJC2_UNAVAILABLE;
-    /// 故名思义，这个类中都遵守了哪些协议，使用场景：判断类是否遵守了某个协议上
     struct objc_protocol_list * _Nullable protocols          OBJC2_UNAVAILABLE;
 #endif
 
@@ -1791,43 +1768,6 @@ OBJC_EXPORT void objc_setHook_getClass(objc_hook_getClass _Nonnull newValue,
 #endif
 
 /**
- * Function type for a hook that assists objc_setAssociatedObject().
- *
- * @param object The source object for the association.
- * @param key The key for the association.
- * @param value The value to associate with the key key for object. Pass nil to clear an existing association.
- * @param policy The policy for the association. For possible values, see “Associative Object Behaviors.”
- *
- * @see objc_setAssociatedObject
- * @see objc_setHook_setAssociatedObject
- */
-typedef void (*objc_hook_setAssociatedObject)(id _Nonnull object, const void * _Nonnull key,
-                                              id _Nullable value, objc_AssociationPolicy policy);
-
-/**
- * Install a hook for objc_setAssociatedObject().
- *
- * @param newValue The hook function to install.
- * @param outOldValue The address of a function pointer variable. On return,
- *  the old hook function is stored in the variable.
- *
- * @note The store to *outOldValue is thread-safe: the variable will be
- *  updated before objc_setAssociatedObject() calls your new hook to read it,
- *  even if your new hook is called from another thread before this
- *  setter completes.
- * @note Your hook should always call the previous hook.
- *
- * @see objc_setAssociatedObject
- * @see objc_hook_setAssociatedObject
- */
-#if !(TARGET_OS_OSX && __i386__)
-#define OBJC_SETASSOCIATEDOBJECTHOOK_DEFINED 1
-OBJC_EXPORT void objc_setHook_setAssociatedObject(objc_hook_setAssociatedObject _Nonnull newValue,
-                                       objc_hook_setAssociatedObject _Nullable * _Nonnull outOldValue)
-    OBJC_AVAILABLE(10.15, 13.0, 13.0, 6.0, 4.0);
-#endif
-
-/**
  * Function type for a function that is called when an image is loaded.
  *
  * @param header The newly loaded header.
@@ -1854,7 +1794,39 @@ typedef void (*objc_func_loadImage)(const struct mach_header * _Nonnull header);
 OBJC_EXPORT void objc_addLoadImageFunc(objc_func_loadImage _Nonnull func)
     OBJC_AVAILABLE(10.15, 13.0, 13.0, 6.0, 4.0);
 
-/** 
+/**
+ * Function type for a hook that provides a name for lazily named classes.
+ *
+ * @param cls The class to generate a name for.
+ * @return The name of the class, or NULL if the name isn't known or can't me generated.
+ *
+ * @see objc_setHook_lazyClassNamer
+ */
+typedef const char * _Nullable (*objc_hook_lazyClassNamer)(_Nonnull Class cls);
+
+/**
+ * Install a hook to provide a name for lazily-named classes.
+ *
+ * @param newValue The hook function to install.
+ * @param outOldValue The address of a function pointer variable. On return,
+ *  the old hook function is stored in the variable.
+ *
+ * @note The store to *outOldValue is thread-safe: the variable will be
+ *  updated before objc_getClass() calls your new hook to read it,
+ *  even if your new hook is called from another thread before this
+ *  setter completes.
+ * @note Your hook must call the previous hook for class names
+ *  that you do not recognize.
+ */
+#if !(TARGET_OS_OSX && __i386__)
+#define OBJC_SETHOOK_LAZYCLASSNAMER_DEFINED 1
+OBJC_EXPORT
+void objc_setHook_lazyClassNamer(_Nonnull objc_hook_lazyClassNamer newValue,
+                                  _Nonnull objc_hook_lazyClassNamer * _Nonnull oldOutValue)
+    OBJC_AVAILABLE(10.16, 14.0, 14.0, 7.0, 5.0);
+#endif
+
+/**
  * Callback from Objective-C to Swift to perform Swift class initialization.
  */
 #if !(TARGET_OS_OSX && __i386__)

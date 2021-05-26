@@ -179,7 +179,7 @@ struct old_property_list {
     struct old_property first;
 };
 
-// MARK:  objc_class
+
 struct objc_class : objc_object {
     Class superclass;
     const char *name;
@@ -187,11 +187,8 @@ struct objc_class : objc_object {
     uint32_t info;
     uint32_t instance_size;
     struct old_ivar_list *ivars;
-    /// 方法列表
     struct old_method_list **methodLists;
-    /// 
     Cache cache;
-    /// 协议列表
     struct old_protocol_list *protocols;
     // CLS_EXT only
     const uint8_t *ivar_layout;

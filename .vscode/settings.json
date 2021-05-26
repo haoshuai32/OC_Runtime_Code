@@ -1,5 +1,8 @@
 {
     "files.associations": {
+        "*.cjson": "jsonc",
+        "*.wxs": "javascript",
+        "*.wxss": "css",
         "objc.h": "c",
         "__bit_reference": "c",
         "__config": "c",
@@ -20,6 +23,7 @@
         "vector": "c",
         "__locale": "c",
         "__threading_support": "c",
-        "utility": "c"
+        "utility": "c",
+        "targetconditionals.h": "c"
     }
 }

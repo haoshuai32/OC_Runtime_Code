@@ -336,7 +336,7 @@ static void _class_resolveClassMethod(id inst, SEL sel, Class cls)
     ASSERT(cls->isMetaClass());
     SEL resolve_sel = @selector(resolveClassMethod:);
 
-    if (!lookUpImpOrNil(inst, resolve_sel, cls)) {
+    if (!lookUpImpOrNilTryCache(inst, resolve_sel, cls)) {
         // Resolver not implemented.
         return;
     }
@@ -346,7 +346,7 @@ static void _class_resolveClassMethod(id inst, SEL sel, Class cls)
 
     // Cache the result (good or bad) so the resolver doesn't fire next time.
     // +resolveClassMethod adds to self->ISA() a.k.a. cls
-    IMP imp = lookUpImpOrNil(inst, sel, cls);
+    IMP imp = lookUpImpOrNilTryCache(inst, sel, cls);
     if (resolved  &&  PrintResolving) {
         if (imp) {
             _objc_inform("RESOLVE: method %c[%s %s] "
@@ -376,7 +376,7 @@ static void _class_resolveInstanceMethod(id inst, SEL sel, Class cls)
 {
     SEL resolve_sel = @selector(resolveInstanceMethod:);
 
-    if (! lookUpImpOrNil(cls, resolve_sel, cls->ISA())) {
+    if (! lookUpImpOrNilTryCache(cls, resolve_sel, cls->ISA())) {
         // Resolver not implemented.
         return;
     }
@@ -386,7 +386,7 @@ static void _class_resolveInstanceMethod(id inst, SEL sel, Class cls)
 
     // Cache the result (good or bad) so the resolver doesn't fire next time.
     // +resolveInstanceMethod adds to self a.k.a. cls
-    IMP imp = lookUpImpOrNil(inst, sel, cls);
+    IMP imp = lookUpImpOrNilTryCache(inst, sel, cls);
 
     if (resolved  &&  PrintResolving) {
         if (imp) {
@@ -424,7 +424,7 @@ _class_resolveMethod(id inst, SEL sel, Class cls)
         // try [nonMetaClass resolveClassMethod:sel]
         // and [cls resolveInstanceMethod:sel]
         _class_resolveClassMethod(inst, sel, cls);
-        if (!lookUpImpOrNil(inst, sel, cls)) {
+        if (!lookUpImpOrNilTryCache(inst, sel, cls)) {
             _class_resolveInstanceMethod(inst, sel, cls);
         }
     }
@@ -1667,11 +1667,8 @@ static IMP _class_addMethod(Class cls, SEL name, IMP imp,
             (old_method_list *)calloc(sizeof(old_method_list), 1);
         mlist->obsolete = fixed_up_method_list;
         mlist->method_count = 1;
-        // 方法名 sel
         mlist->method_list[0].method_name = name;
-        // 方法返回类型
         mlist->method_list[0].method_types = strdup(types);
-        // 方法指针 
         mlist->method_list[0].method_imp = imp;
         
         _objc_insertMethods(cls, mlist, nil);
@@ -2596,8 +2593,7 @@ id object_reallocFromZone(id obj, size_t nBytes, void *z)
 void *object_getIndexedIvars(id obj)
 {
     // ivars are tacked onto the end of the object
-    if (!obj) return nil;
-    if (obj->isTaggedPointer()) return nil;
+    if (obj->isTaggedPointerOrNil()) return nil;
     return ((char *) obj) + obj->ISA()->alignedInstanceSize();
 }
 
