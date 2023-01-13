@@ -1469,6 +1469,7 @@ struct class_rw_t {
 
     explicit_atomic<uintptr_t> ro_or_rw_ext;
 
+    //TODO: 这里是不是一个双向链表
     Class firstSubclass;
     Class nextSiblingClass;
 
@@ -1609,7 +1610,7 @@ private:
     }
 
 public:
-
+    // 返回一个指向对象的地址
     class_rw_t* data() const {
         return (class_rw_t *)(bits & FAST_DATA_MASK);
     }

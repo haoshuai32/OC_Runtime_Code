@@ -81,6 +81,7 @@ union isa_t {
     isa_t() { }
     isa_t(uintptr_t value) : bits(value) { }
 
+    // unsigned long
     uintptr_t bits;
 
 private:

@@ -152,7 +152,9 @@ enum HaveNew { DontHaveNew = false, DoHaveNew = true };
 
 struct SideTable {
     spinlock_t slock;
+    // 强引用 内存引用计数
     RefcountMap refcnts;
+    // 弱引用列表
     weak_table_t weak_table;
 
     SideTable() {
@@ -1616,18 +1618,22 @@ objc_object::sidetable_clearExtraRC_nolock()
 // SUPPORT_NONPOINTER_ISA
 #endif
 
-
+// MARK: 增加引用计数
 id
 objc_object::sidetable_retain(bool locked)
 {
 #if SUPPORT_NONPOINTER_ISA
     ASSERT(!isa.nonpointer);
 #endif
+    // 通过对象找到 管理引用计数 和 弱引用管理的 table
+    // map[this]
     SideTable& table = SideTables()[this];
     
     if (!locked) table.lock();
+    // 找到这个对象的引用计数
     size_t& refcntStorage = table.refcnts[this];
     if (! (refcntStorage & SIDE_TABLE_RC_PINNED)) {
+        // 对引用计数增加
         refcntStorage += SIDE_TABLE_RC_ONE;
     }
     table.unlock();
@@ -1745,7 +1751,7 @@ objc_object::sidetable_setWeaklyReferenced_nolock()
     table.refcnts[this] |= SIDE_TABLE_WEAKLY_REFERENCED;
 }
 
-
+// MARK: 引用计数减一
 // rdar://20206767
 // return uintptr_t instead of bool so that the various raw-isa 
 // -release paths all return zero in eax
@@ -1769,10 +1775,12 @@ objc_object::sidetable_release(bool locked, bool performDealloc)
         do_dealloc = true;
         refcnt |= SIDE_TABLE_DEALLOCATING;
     } else if (! (refcnt & SIDE_TABLE_RC_PINNED)) {
+        // 计数减一
         refcnt -= SIDE_TABLE_RC_ONE;
     }
     table.unlock();
-    if (do_dealloc  &&  performDealloc) {
+    if (do_dealloc  &&  performDealloc) { // 是否判断 是否释放对象
+        // 释放当前的对象
         ((void(*)(objc_object *, SEL))objc_msgSend)(this, @selector(dealloc));
     }
     return do_dealloc;
@@ -1791,8 +1799,10 @@ objc_object::sidetable_clearDeallocating()
     RefcountMap::iterator it = table.refcnts.find(this);
     if (it != table.refcnts.end()) {
         if (it->second & SIDE_TABLE_WEAKLY_REFERENCED) {
+            // 清除下面所有的弱引用指针 设置为 nil
             weak_clear_no_lock(&table.weak_table, (id)this);
         }
+        //从refcnts中删除引用计数
         table.refcnts.erase(it);
     }
     table.unlock();

@@ -51,6 +51,8 @@ struct objc_object {
 /// A pointer to an instance of a class.
 typedef struct objc_object *id;
 
+
+
 ```
 
 在[objc-private.h](https://opensource.apple.com/source/objc4/objc4-824/runtime/objc-private.h)文件中对`objc_object`的定义。
@@ -138,19 +140,19 @@ OC中所有的实例对象、类对象和元类对象中都一个名为isa的成
 #     define RC_HALF  (1ULL<<18)
 ```
 
-上面信息中定义的像ISA_MASK这种常量我们不用管，这些都是程序在操作isa的过程中要用到的，比如我们将isa和ISA_MASK进行按位与运算isa & ISA_MASK就可以得到isa中存储的地址值。
+上面信息中定义的像ISA_MASK这种常量我们不用管，这些都是程序在操作isa的过程中要用到的，比如我们将isa和`ISA_MASK`进行按位与运算isa & ISA_MASK就可以得到isa中存储的地址值。
 
-我们主要关注一下ISA_BITFIELD定义数据类型：
+我们主要关注一下`ISA_BITFIELD`定义数据类型：
 
-- nonpointer：(isa的第0位(isa的最后面那位)，共占1位)。为0表示这个isa只存储了地址值，为1表示这是一个优化过的isa。
-- has_assoc：(isa的第1位，共占1位)。记录这个对象是否是关联对象,没有的话，释放更快。
-- has_cxx_dtor：(isa的第2位，共占1位)。记录是否有c++的析构函数，没有的话，释放更快。
-- shiftcls：(isa的第3-35位，共占33位)。记录类对象或元类对象的地址值。
-- magic：(isa的第36-41位，共占6位)，用于在调试时分辨对象是否完成初始化。
-- weakly_referenced：(isa的第42位，共占1位)，用于记录该对象是否被弱引用或曾经被弱引用过，没有被弱引用过的对象可以更快释放。
-- deallocating：(isa的第43位，共占1位)，标志对象是否正在释放内存。
-- has_sidetable_rc：(isa的第44位，共占1位)，用于标记是否有扩展的引用计数。当一个对象的引用计数比较少时，其引用计数就记录在isa中，当引用计数大于某个值时就会采用sideTable来协助存储引用计数。
-- extra_rc：(isa的第45-63位，共占19位)，用来记录该对象的引用计数值-1(比如引用计数是5的话这里记录的就是4)。这里总共是19位，如果引用计数很大，19位存不下的话就会采用sideTable来协助存储，规则如下：当19位存满时，会将19位的一半(也就是上面定义的RC_HALF)存入sideTable中，如果此时引用计数又+1，那么是加在extra_rc上，当extra_rc又存满时，继续拿出RC_HALF的大小放入sideTable。当引用计数减少时，如果extra_rc的值减少到了0，那就从sideTable中取出RC_HALF大小放入extra_rc中。综上所述，引用计数不管是增加还是减少都是在extra_rc上进行的，而不会直接去操作sideTable，这是因为sideTable中有个自旋锁，而引用计数的增加和减少操作是非常频繁的，如果直接去操作sideTable会非常影响性能，所以这样设计来尽量减少对sideTable的访问。
+- `nonpointer`：(isa的第0位(isa的最后面那位)，共占1位)。为0表示这个isa只存储了地址值，为1表示这是一个优化过的isa。 ｜ 是32位还是64位
+- `has_assoc`：(isa的第1位，共占1位)。记录这个对象是否是关联对象,没有的话，释放更快。
+- `has_cxx_dtor`：(isa的第2位，共占1位)。记录是否有c++的析构函数，没有的话，释放更快。
+- `shiftcls`：(isa的第3-35位，共占33位)。记录类对象或元类对象的地址值。
+- `magic`：(isa的第36-41位，共占6位)，用于在调试时分辨对象是否完成初始化。
+- `weakly_referenced`：(isa的第42位，共占1位)，用于记录该对象是否被弱引用或曾经被弱引用过，没有被弱引用过的对象可以更快释放。
+- `deallocating`：(isa的第43位，共占1位)，标志对象是否正在释放内存。
+- `has_sidetable_rc`：(isa的第44位，共占1位)，用于标记是否有扩展的引用计数。当一个对象的引用计数比较少时，其引用计数就记录在isa中，当引用计数大于某个值时就会采用`sideTable`来协助存储引用计数。
+- `extra_rc`：(isa的第45-63位，共占19位)，用来记录该对象的引用计数值-1(比如引用计数是5的话这里记录的就是4)。这里总共是19位，如果引用计数很大，19位存不下的话就会采用`sideTable`来协助存储，规则如下：当19位存满时，会将19位的一半(也就是上面定义的`RC_HALF`)存入`sideTable`中，如果此时引用计数又+1，那么是加在`extra_rc`上，当`extra_rc`又存满时，继续拿出`RC_HALF`的大小放入`sideTable`。当引用计数减少时，如果`extra_rc`的值减少到了0，那就从`sideTable`中取出`RC_HALF`大小放入`extra_rc`中。综上所述，引用计数不管是增加还是减少都是在`extra_rc`上进行的，而不会直接去操作`sideTable`，这是因为`sideTable`中有个自旋锁，而引用计数的增加和减少操作是非常频繁的，如果直接去操作`sideTable`会非常影响性能，所以这样设计来尽量减少对`sideTable`的访问。
 
 
 在[objc-runtime-new.h](https://opensource.apple.com/source/objc4/objc4-824/runtime/objc-runtime-new.h)对`objc_class`定义。
@@ -192,3 +194,48 @@ struct objc_class : objc_object {
 ### 引用计数
 
 ### 弱引用
+
+弱引用函数入口
+
+[NSObject.mm](https://opensource.apple.com/source/objc4/objc4-824/runtime/NSObject.mm)
+
+```c++
+
+/** 
+ * Initialize a fresh weak pointer to some object location. 
+ * It would be used for code like: 
+ *
+ * (The nil case) 
+ * __weak id weakPtr;
+ * (The non-nil case) 
+ * NSObject *o = ...;
+ * __weak id weakPtr = o;
+ * 
+ * This function IS NOT thread-safe with respect to concurrent 
+ * modifications to the weak variable. (Concurrent weak clear is safe.)
+ *
+ * @param location Address of __weak ptr. 
+ * @param newObj Object ptr. 
+ */
+id objc_initWeak(id *location, id newObj);
+
+/** 
+ * This function stores a new value into a __weak variable. It would
+ * be used anywhere a __weak variable is the target of an assignment.
+ * 
+ * @param location The address of the weak pointer itself
+ * @param newObj The new object this weak ptr should now point to
+ * 
+ * @return \e newObj
+ */
+id objc_storeWeak(id *location, id newObj);
+```
+
+
+## 数据接口
+
+### 链表
+
+### hashmap
+
+### hashtable

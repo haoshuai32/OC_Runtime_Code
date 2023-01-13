@@ -1485,7 +1485,7 @@ static void methodizeClass(Class cls, Class previously)
         _objc_inform("CLASS: methodizing class '%s' %s", 
                      cls->nameForLogging(), isMeta ? "(meta)" : "");
     }
-
+    // 安装类自行实现的方法和属性。
     // Install methods and properties that the class implements itself.
     method_list_t *list = ro->baseMethods();
     if (list) {
@@ -1504,12 +1504,14 @@ static void methodizeClass(Class cls, Class previously)
     }
 
     // Root classes get bonus method implementations if they don't have 
-    // them already. These apply before category replacements.
+    // them already. These apply before category replacements. | 
+    // 根类如果尚未获得奖励方法实现，则可以使用它们。 这些适用于类别替换之前。
     if (cls->isRootMetaclass()) {
         // root metaclass
         addMethod(cls, @selector(initialize), (IMP)&objc_noop_imp, "", NO);
     }
 
+    // attach extension
     // Attach categories.
     if (previously) {
         if (isMeta) {
